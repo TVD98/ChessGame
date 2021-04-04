@@ -16,6 +16,7 @@ public class ChessBoard extends View {
     private Rect rect = new Rect();
     private float mWidthBox;
     private final int BOX_COUNT = 8;
+    private OnBoardClickListener listener;
 
     public ChessBoard(Context context) {
         this(context, null);
@@ -82,7 +83,7 @@ public class ChessBoard extends View {
             case MotionEvent.ACTION_MOVE:
                 break;
             case MotionEvent.ACTION_UP:
-                showXY(event.getX(), event.getY());
+                sendPoint(event.getX(), event.getY());
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:
         }
@@ -90,9 +91,19 @@ public class ChessBoard extends View {
         return true;
     }
 
-    private void showXY(float x, float y){
+    private void sendPoint(float x, float y){
         int posX = (int) (x / mWidthBox);
         int posY = (int) (y/ mWidthBox);
-        Toast.makeText(getContext(), String.format("%d, %d", posX, posY), Toast.LENGTH_SHORT).show();
+        if (listener != null){
+            listener.onBoardClick(new Point(posX, posY));
+        }
+    }
+
+    public void addBoardClickListener(OnBoardClickListener listener){
+        this.listener = listener;
+    }
+
+    public interface OnBoardClickListener{
+        void onBoardClick(Point point);
     }
 }
