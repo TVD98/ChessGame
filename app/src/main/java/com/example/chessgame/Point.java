@@ -11,6 +11,19 @@ public class Point {
         this.y = y;
     }
 
+    public Point() {
+        this.x = -1;
+        this.y = -1;
+    }
+
+    public boolean isHidden(){
+        return this.x == -1 || this.y == -1;
+    }
+
+    public boolean compareTo(int x, int y) {
+        return this.x == x && this.y == y;
+    }
+
     @NonNull
     @Override
     public String toString() {

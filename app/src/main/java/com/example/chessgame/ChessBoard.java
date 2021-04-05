@@ -8,14 +8,19 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ChessBoard extends View {
 
     private Paint[] mBoxPaint = new Paint[2];
+    private Paint highlightPain;
     private Rect rect = new Rect();
     private float mWidthBox;
     private final int BOX_COUNT = 8;
+    private Point selectedBox = new Point();
+    private List<Point> selectedBoxList = new ArrayList<>();
     private OnBoardClickListener listener;
 
     public ChessBoard(Context context) {
@@ -43,6 +48,12 @@ public class ChessBoard extends View {
         mGrayBoxPaint.setColor(Color.GRAY);
 
         mBoxPaint[1] = mGrayBoxPaint;
+
+        highlightPain = new Paint(Paint.ANTI_ALIAS_FLAG);
+        highlightPain.setStyle(Paint.Style.STROKE);
+        highlightPain.setColor(Color.YELLOW);
+        highlightPain.setStrokeCap(Paint.Cap.ROUND);
+        highlightPain.setStrokeWidth(2 * getResources().getDisplayMetrics().density);
     }
 
     @Override
@@ -61,10 +72,18 @@ public class ChessBoard extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        // draw chessboard
         for (int i = 0; i < BOX_COUNT; i++) {
             for (int j = 0; j < BOX_COUNT; j++) {
                 canvas.drawRect(j * mWidthBox, i * mWidthBox, (j + 1) * mWidthBox, (i + 1) * mWidthBox, mBoxPaint[((i + j) % 2)]);
             }
+        }
+        // highlight for selected box
+        for (Point point : selectedBoxList
+        ) {
+            int x = point.getX();
+            int y = point.getY();
+            canvas.drawRect(x * mWidthBox, y * mWidthBox, (x + 1) * mWidthBox, (y + 1) * mWidthBox, highlightPain);
         }
     }
 
@@ -83,7 +102,7 @@ public class ChessBoard extends View {
             case MotionEvent.ACTION_MOVE:
                 break;
             case MotionEvent.ACTION_UP:
-                sendPoint(event.getX(), event.getY());
+                handleBoardClicked(event.getX(), event.getY());
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:
         }
@@ -91,19 +110,49 @@ public class ChessBoard extends View {
         return true;
     }
 
-    private void sendPoint(float x, float y){
+    private void handleBoardClicked(float x, float y) {
         int posX = (int) (x / mWidthBox);
-        int posY = (int) (y/ mWidthBox);
-        if (listener != null){
-            listener.onBoardClick(new Point(posX, posY));
+        int posY = (int) (y / mWidthBox);
+        onBoxClicked(posX, posY);
+    }
+
+    private void onBoxClicked(int x, int y) {
+        sendPoint(x, y);
+        changeSelectedBoxList(x, y);
+    }
+
+    private void changeSelectedBoxList(int x, int y) {
+        // clear all selected box list
+        selectedBoxList.clear();
+        // check press selected box again
+        if (selectedBox.compareTo(x, y)) {
+            return;
+        }
+        // set selected box
+        selectedBox.setX(x);
+        selectedBox.setY(y);
+
+        for (int i = 0; i < BOX_COUNT; i++) {
+            // did not add first item again
+            if (i != x)
+                selectedBoxList.add(new Point(i, y));
+            if (i != y)
+                selectedBoxList.add(new Point(x, i));
+        }
+
+    }
+
+    private void sendPoint(int x, int y) {
+        if (listener != null) {
+            listener.onBoardClick(new Point(x, y));
         }
     }
 
-    public void addBoardClickListener(OnBoardClickListener listener){
+    public void addBoardClickListener(OnBoardClickListener listener) {
         this.listener = listener;
     }
 
-    public interface OnBoardClickListener{
+    public interface OnBoardClickListener {
         void onBoardClick(Point point);
     }
 }
