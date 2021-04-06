@@ -16,12 +16,10 @@ public class ChessBoard extends View {
 
     private Paint[] mBoxPaint = new Paint[2];
     private Paint highlightPain;
-    private Rect rect = new Rect();
     private float mWidthBox;
-    private final int BOX_COUNT = 8;
-    private Point selectedBox = new Point();
     private List<Point> selectedBoxList = new ArrayList<>();
     private OnBoardClickListener listener;
+    public Point selectedBox = new Point();
 
     public ChessBoard(Context context) {
         this(context, null);
@@ -51,7 +49,7 @@ public class ChessBoard extends View {
 
         highlightPain = new Paint(Paint.ANTI_ALIAS_FLAG);
         highlightPain.setStyle(Paint.Style.STROKE);
-        highlightPain.setColor(Color.YELLOW);
+        highlightPain.setColor(Color.BLUE);
         highlightPain.setStrokeCap(Paint.Cap.ROUND);
         highlightPain.setStrokeWidth(2 * getResources().getDisplayMetrics().density);
     }
@@ -67,14 +65,14 @@ public class ChessBoard extends View {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        mWidthBox = w / BOX_COUNT;
+        mWidthBox = w / Constraints.BOX_COUNT;
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         // draw chessboard
-        for (int i = 0; i < BOX_COUNT; i++) {
-            for (int j = 0; j < BOX_COUNT; j++) {
+        for (int i = 0; i < Constraints.BOX_COUNT; i++) {
+            for (int j = 0; j < Constraints.BOX_COUNT; j++) {
                 canvas.drawRect(j * mWidthBox, i * mWidthBox, (j + 1) * mWidthBox, (i + 1) * mWidthBox, mBoxPaint[((i + j) % 2)]);
             }
         }
@@ -93,7 +91,6 @@ public class ChessBoard extends View {
         int maskedAction = event.getActionMasked();
 
         switch (maskedAction) {
-
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN: {
                 // TODO use data
@@ -117,34 +114,35 @@ public class ChessBoard extends View {
     }
 
     private void onBoxClicked(int x, int y) {
-        sendPoint(x, y);
-        changeSelectedBoxList(x, y);
+        Point point = new Point(x, y);
+        boolean repeated = false;
+        // check press box again
+        if (selectedBox.equals(point)) {
+            repeated = true;
+            // set default value for selected box
+            selectedBox.isDefaultValue(true);
+            // clear all highlight box
+            selectedBoxList.clear();
+            invalidate();
+        } else {
+            // set selected box
+            selectedBox = point;
+        }
+        sendPoint(point, repeated);
     }
 
-    private void changeSelectedBoxList(int x, int y) {
-        // clear all selected box list
-        selectedBoxList.clear();
-        // check press selected box again
-        if (selectedBox.compareTo(x, y)) {
-            return;
-        }
-        // set selected box
-        selectedBox.setX(x);
-        selectedBox.setY(y);
-
-        for (int i = 0; i < BOX_COUNT; i++) {
-            // did not add first item again
-            if (i != x)
-                selectedBoxList.add(new Point(i, y));
-            if (i != y)
-                selectedBoxList.add(new Point(x, i));
-        }
-
+    public static boolean isOn(int x, int y) {
+        return !(x < 0 || x >= Constraints.BOX_COUNT || y < 0 || y >= Constraints.BOX_COUNT);
     }
 
-    private void sendPoint(int x, int y) {
+    public void setSelectedBoxList(List<Point> points) {
+        selectedBoxList = points;
+        invalidate();
+    }
+
+    private void sendPoint(Point point, boolean repeated) {
         if (listener != null) {
-            listener.onBoardClick(new Point(x, y));
+            listener.onBoardClick(point, repeated);
         }
     }
 
@@ -153,6 +151,6 @@ public class ChessBoard extends View {
     }
 
     public interface OnBoardClickListener {
-        void onBoardClick(Point point);
+        void onBoardClick(Point point, boolean repeated);
     }
 }
