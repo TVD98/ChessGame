@@ -8,10 +8,9 @@ import java.util.List;
 
 public class Castle extends ChessMan{
 
-    public Castle(Point point){
-        super("Rock", point);
+    public Castle(Point point, int id){
+        super("Rock", point, id);
     }
-
     @Override
     public List<Point> allAllowedPositionToMove() {
         List<Point> list = new ArrayList<>();

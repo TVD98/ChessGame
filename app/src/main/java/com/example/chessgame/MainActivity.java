@@ -26,13 +26,15 @@ public class MainActivity extends AppCompatActivity implements ChessBoard.OnBoar
         contain = findViewById(R.id.contain);
         chessBoard = findViewById(R.id.chess_board);
 
-        if(savedInstanceState != null){
+        if (savedInstanceState != null) {
             int x = savedInstanceState.getInt("x");
             int y = savedInstanceState.getInt("y");
-            Point point = new Point(x, y);
-            King king = new King(point);
-            chessBoard.selectedBox = point; 
-            chessBoard.setSelectedBoxList(king.allAllowedPositionToMove());
+            if (ChessBoard.isOn(x, y)) {
+                Point point = new Point(x, y);
+                King king = new King(point, 2);
+                chessBoard.selectedBox = point;
+                chessBoard.setSelectedBoxList(king.allAllowedPositionToMove());
+            }
         }
 
         int orientation = getResources().getConfiguration().orientation;
@@ -48,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements ChessBoard.OnBoar
     @Override
     public void onBoardClick(Point point, boolean repeated) {
         if (!repeated) {
-            King king = new King(point);
+            King king = new King(point, 2);
             chessBoard.setSelectedBoxList(king.allAllowedPositionToMove());
         }
     }

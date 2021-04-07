@@ -7,8 +7,8 @@ import java.util.List;
 
 public class King extends ChessMan {
 
-    public King(Point point) {
-        super("King", point);
+    public King(Point point, int id) {
+        super("King", point, id);
     }
 
     @Override
