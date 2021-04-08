@@ -24,13 +24,17 @@ public class ChessBoard extends View {
 
     private Paint[] mBoxPaint = new Paint[2];
     private Paint highlightPain;
-    private float mWidthBox;
+    private int mWidthBox;
     private List<Point> selectedBoxList = new ArrayList<>();
     private List<ChessMan> chessManList = new ArrayList<>();
     private Drawable[] drawableChessMans = new Drawable[12];
     private OnBoardClickListener listener;
+    private Rect[] rectList = new Rect[32];
+    private int selectedChessman = -1;
     public Point selectedBox = new Point();
-    Drawable drawable;
+    int _xDelta;
+    int _yDelta;
+    boolean isMoving = false;
 
     public ChessBoard(Context context) {
         this(context, null);
@@ -38,8 +42,7 @@ public class ChessBoard extends View {
 
     public ChessBoard(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
-initChessMan(context);
-
+        initChessMan(context);
     }
 
     private void initChessMan(Context context) {
@@ -92,6 +95,8 @@ initChessMan(context);
         chessManList.add(new King(new Point(5, 6), 11));
         chessManList.add(new King(new Point(6, 6), 11));
         chessManList.add(new King(new Point(7, 6), 11));
+
+
     }
 
     public ChessBoard(Context context, AttributeSet attrs, int defStyleAttr) {
@@ -131,16 +136,22 @@ initChessMan(context);
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         mWidthBox = w / Constraints.BOX_COUNT;
+
+        //change rect of chessman
+        for (int i = 0; i < chessManList.size(); i++) {
+            Point point = chessManList.get(i).getPosition();
+            rectList[i] = new Rect(point.getX() * mWidthBox, point.getY() * mWidthBox,
+                    (point.getX() + 1) * mWidthBox, (point.getY() + 1) * mWidthBox);
+        }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         Rect rect;
         // draw chessboard
-        int width = (int) mWidthBox;
         for (int i = 0; i < Constraints.BOX_COUNT; i++) {
             for (int j = 0; j < Constraints.BOX_COUNT; j++) {
-                rect = new Rect(j * width, i * width, (j + 1) * width, (i + 1) * width);
+                rect = new Rect(j * mWidthBox, i * mWidthBox, (j + 1) * mWidthBox, (i + 1) * mWidthBox);
                 canvas.drawRect(rect, mBoxPaint[((i + j) % 2)]);
             }
         }
@@ -152,11 +163,23 @@ initChessMan(context);
             canvas.drawRect(x * mWidthBox, y * mWidthBox, (x + 1) * mWidthBox, (y + 1) * mWidthBox, highlightPain);
         }
 
-        for (ChessMan chessMan : chessManList
-        ) {
+        // draw all chessman exception moving chessman
+        for (int i = 0; i < chessManList.size(); i++) {
+            if (selectedChessman == -1 || i != selectedChessman) {
+                ChessMan chessMan = chessManList.get(i);
+                Point point = chessMan.getPosition();
+                rect = rectList[i];
+                Drawable drawable = drawableChessMans[chessMan.getId()];
+                drawable.setBounds(rect);
+                drawable.draw(canvas);
+            }
+        }
+
+        // draw moving chessman
+        if(selectedChessman != -1){
+            ChessMan chessMan = chessManList.get(selectedChessman);
             Point point = chessMan.getPosition();
-            rect = new Rect(point.getX() * width, point.getY() * width,
-                    (point.getX() + 1) * width, (point.getY() + 1) * width);
+            rect = rectList[selectedChessman];
             Drawable drawable = drawableChessMans[chessMan.getId()];
             drawable.setBounds(rect);
             drawable.draw(canvas);
@@ -167,22 +190,55 @@ initChessMan(context);
     public boolean onTouchEvent(MotionEvent event) {
         // get masked (not specific to a pointer) action
         int maskedAction = event.getActionMasked();
-
+        final int X = (int) event.getX();
+        final int Y = (int) event.getY();
+        if (!isMoving) {
+            changeSelectedChessman(X, Y);
+            isMoving = !isMoving;
+        }
         switch (maskedAction) {
             case MotionEvent.ACTION_DOWN:
+                handleBoardClicked(X, Y);
+                _xDelta = X - rectList[selectedChessman].left;
+                _yDelta = Y - rectList[selectedChessman].top;
+                break;
             case MotionEvent.ACTION_POINTER_DOWN: {
                 // TODO use data
                 break;
             }
             case MotionEvent.ACTION_MOVE:
+                rectList[selectedChessman].left = X - _xDelta;
+                rectList[selectedChessman].right = X - _xDelta + mWidthBox;
+                rectList[selectedChessman].top = Y - _yDelta;
+                rectList[selectedChessman].bottom = Y - _yDelta + mWidthBox;
                 break;
             case MotionEvent.ACTION_UP:
-                handleBoardClicked(event.getX(), event.getY());
+                int posX = (int) ((rectList[selectedChessman].right - mWidthBox / 2) / mWidthBox);
+                int posY = (int) ((rectList[selectedChessman].bottom - mWidthBox / 2) / mWidthBox);
+                rectList[selectedChessman].left = posX * mWidthBox;
+                rectList[selectedChessman].right = (posX + 1) * mWidthBox;
+                rectList[selectedChessman].top = posY * mWidthBox;
+                rectList[selectedChessman].bottom = (posY + 1) * mWidthBox;
+                chessManList.get(selectedChessman).getPosition().setX(posX);
+                chessManList.get(selectedChessman).getPosition().setY(posY);
+                isMoving = !isMoving;
+                selectedBoxList.clear();
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:
         }
         invalidate();
         return true;
+    }
+
+    private void changeSelectedChessman(int x, int y) {
+        int posX = (int) (x / mWidthBox);
+        int posY = (int) (y / mWidthBox);
+        for (int i = 0; i < chessManList.size(); i++) {
+            if (chessManList.get(i).getPosition().getX() == posX
+                    && chessManList.get(i).getPosition().getY() == posY) {
+                selectedChessman = i;
+            }
+        }
     }
 
     private void handleBoardClicked(float x, float y) {
